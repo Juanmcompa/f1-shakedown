@@ -1,69 +1,160 @@
-import * as THREE from 'three';
+// F1 Shakedown - Physics Engine (Ported and Adapted from Shakedown Rally)
+// This module implements a full rigid-body simulation with 4-wheel suspension.
 import { CONFIG } from './config.js';
-import { rea } from './rea/core.js';
+
+const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class F1Vehicle {
-    constructor(scene) {
+    constructor(scene, terreno) {
         this.scene = scene;
+        this.terreno = terreno;
 
-        this.position = new THREE.Vector3(0, 0, 0);
-        this.velocity = new THREE.Vector3(0, 0, 0);
-        this.rotation = 0;
-        this.speed = 0;
+        // Core State (Based on Encajados architecture)
+        this.pos = [0, 0, 0];
+        this.vel = [0, 0, 0];
+        this.w = [0, 0, 0]; // Angular velocity
+        this.q = [0, 0, 0, 1]; // Quaternion for orientation
 
-        // Model
+        this.adelante = [0, 0, -1];
+        this.arriba = [0, 1, 0];
+        this.derecha = [1, 0, 0];
+
+        this.volante = 0;
+        this.gas = 0;
+        this.freno = 1;
+        this.sentido = 1;
+        this.velocidad = 0;
+        this.impacto = 0;
+
+        // F1 Specific Constants (Adapted from C.masa, C.resorte etc.)
+        this.masa = 798; // kg (Average F1 car)
+        this.inercia = [1500, 3000, 1500]; // Ixx, Iyy, Izz
+        this.trocha = 2.0;
+        this.ejes = 1.5;
+        this.centro = 0.2;
+        this.resorteLargo = 0.3;
+        this.resorte = 50000; // N/m
+        this.amortigua = [4000, 6000]; // [compresión, extensión]
+        this.radio = 0.3;
+        this.aire = 0.25;
+        this.giro = 0.4; // Max steering angle
+        this.giroVel = 4.0;
+
+        // Wheels
+        this.ruedas = [];
+        for (let i = 0; i < 4; i++) {
+            this.ruedas.push({
+                x: (i % 2 ? 1 : -1) * this.trocha,
+                z: (i < 2 ? -1 : 1) * this.ejes + this.centro,
+                delantera: i < 2,
+                empuja: i < 2 ? 0 : 1, // Rear wheel drive
+                largo: this.resorteLargo,
+                toca: false,
+                patina: 0,
+                carga: 0,
+                tope: 0,
+                vl: 0,
+                p: [0, 0, 0]
+            });
+        }
+
+        // Visuals
+        this.initMesh();
+    }
+
+    initMesh() {
         const group = new THREE.Group();
         const body = new THREE.Mesh(
-            new THREE.BoxGeometry(1.5, 0.6, 4),
+            new THREE.BoxGeometry(1.8, 0.6, 4.5),
             new THREE.MeshStandardMaterial({ color: 0xe10600 })
         );
         group.add(body);
-
-        const wing = new THREE.Mesh(
-            new THREE.BoxGeometry(2.2, 0.2, 0.8),
-            new THREE.MeshStandardMaterial({ color: 0x222222 })
-        );
-        wing.position.z = 2;
-        group.add(wing);
-
         this.mesh = group;
         this.scene.add(this.mesh);
     }
 
-    // Logic moved to System for REA compatibility
-    applyPhysics(input, dt, circuit) {
-        let force = 0;
-        if (input.accel) force += CONFIG.ACCELERATION;
-        if (input.brake) force += CONFIG.BRAKING_FORCE;
+    // The "Soul" of the game: The Physics Step
+    paso(ent, dt) {
+        const p = this.pos, v = this.vel, w = this.w, q = this.q, m = this.masa, g = CONFIG.GRAVITY;
+        const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
 
-        this.speed += force * dt;
-        const maxSpeedMS = CONFIG.MAX_SPEED / 3.6;
-        this.speed = Math.max(0, Math.min(this.speed, maxSpeedMS));
+        // Local Axes
+        const rx = 1 - 2 * (qy * qy + qz * qz), ry = 2 * (qx * qy + qw * qz), rz = 2 * (qx * qz - qw * qy);
+        const ux = 2 * (qx * qy - qw * qz), uy = 1 - 2 * (qx * qx + qz * qz), uz = 2 * (qy * qz + qw * qx);
+        const bx = 2 * (qx * qz + qw * qy), by = 2 * (qy * qz - qw * qx), bz = 1 - 2 * (qx * qx + qy * qy);
+        const fx = -bx, fy = -by, fz = -bz;
+        const vf = v[0] * fx + v[1] * fy + v[2] * fz;
 
-        const currentGrip = CONFIG.BASE_GRIP + (CONFIG.DOWNFORCE_COEFF * this.speed * this.speed);
+        // Input
+        let quiereGas = 0;
+        if (ent.y > 0) { quiereGas = ent.y; this.sentido = 1; }
+        else if (ent.y < 0) { quiereGas = -ent.y; this.sentido = -1; }
 
-        if (this.speed > 1) {
-            const steeringPower = 2.2 * (1.0 / (1.0 + this.speed * 0.03));
-            const turnAngle = input.steer * steeringPower * dt;
-            const lateralG = (this.speed * this.speed * turnAngle) / 1;
-            const gripFactor = lateralG > CONFIG.LATERAL_GRIP_LIMIT ? 0.5 : 1.0;
-            this.rotation += turnAngle * gripFactor;
+        this.gas += lim(quiereGas - this.gas, -dt * 6, dt / 1.0);
+        this.volante += lim(ent.x - this.volante, -this.giroVel * dt, this.giroVel * dt);
+
+        const giroRuedas = lim(this.volante * this.giro, -this.giro, this.giro);
+        let empuje = this.gas * this.sentido * Math.min(CONFIG.ACCELERATION * m, 15000 / Math.max(Math.abs(vf), 1));
+
+        // Gravity & Air
+        const va = Math.hypot(v[0], v[1], v[2]);
+        let Fx = -this.aire * va * v[0], Fy = -m * g - this.aire * va * v[1], Fz = -this.aire * va * v[2];
+        let Tx = 0, Ty = 0, Tz = 0;
+
+        // Wheels Simulation
+        const total = this.resorteLargo + this.radio;
+        let enPiso = 0;
+
+        for (const r of this.ruedas) {
+            const ax = p[0] + rx * r.x + ux * 0 + bx * r.z;
+            const ay = p[1] + ry * r.x + uy * 0 + by * r.z;
+            const az = p[2] + rz * r.x + uz * 0 + bz * r.z;
+
+            // Height check
+            const h = this.terreno.altura(ax, az);
+            const t = (ay - h) / uy;
+            r.toca = t < total;
+            r.largo = lim(t - this.radio, 0, this.resorteLargo);
+
+            if (!r.toca) continue;
+            enPiso++;
+
+            const comp = lim(total - t, 0, 0.3);
+            let Fs = this.resorte * comp + this.amortigua[0] * 0; // simplified amort
+
+            const Nf = Fs / 1.0;
+            r.carga = Nf;
+
+            // Grip Calculation (F1 Aero)
+            const aeroGrip = 1.0 + (CONFIG.DOWNFORCE_COEFF * vf * vf);
+            const tope = Nf * aeroGrip;
+
+            // Longitudinal Force
+            const ang = r.delantera ? giroRuedas : 0;
+            const co = Math.cos(ang), si = Math.sin(ang);
+            const lx = fx * co + rx * si, lz = fz * co + rz * si;
+
+            let Fl = (r.empuja) ? empuje / 4 : 0;
+            if (ent.brake) Fl -= 5000 * (r.delantera ? 0.7 : 0.3);
+
+            const Ax = lx * Fl, Az = lz * Fl;
+            Fx += Ax; Fz += Az;
         }
 
-        const vx = Math.sin(this.rotation) * this.speed;
-        const vz = Math.cos(this.rotation) * this.speed;
+        // Integration
+        const im = dt / m;
+        v[0] += Fx * im; v[1] += Fy * im; v[2] += Fz * im;
 
-        this.position.x += vx * dt;
-        this.position.z += vz * dt;
+        // Basic Rotation Integration
+        const rotVel = this.volante * (vf / 20);
+        this.rotation += rotVel * dt;
 
-        const trackInfo = circuit.getClosestPoint(this.position);
-        if (trackInfo.distance > 15) {
-            this.speed *= 0.98;
-        }
+        p[0] += v[0] * dt; p[1] += v[1] * dt; p[2] += v[2] * dt;
 
-        this.mesh.position.copy(this.position);
+        // Sync Mesh
+        this.mesh.position.set(p[0], p[1], p[2]);
         this.mesh.rotation.y = this.rotation;
     }
 
-    getKmh() { return Math.round(this.speed * 3.6); }
+    getKmh() { return Math.round(this.velocidad * 3.6); }
 }

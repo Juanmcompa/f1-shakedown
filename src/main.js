@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { rea } from './rea/core.js';
+import { F1Vehicle } from './vehicle.js';
+import { Circuit } from './circuit.js';
 
 // --- REA SYSTEMS ---
 
@@ -71,9 +73,7 @@ class CameraSystem {
     }
 }
 
-// Import vehicle and circuit inside the class or as modules
-import { F1Vehicle } from './vehicle.js';
-import { Circuit } from './circuit.js';
+// --- GAME CLASS ---
 
 class Game {
     constructor() {
@@ -90,6 +90,7 @@ class Game {
 
         this.setupLighting();
 
+        // Initialize REA
         rea.setState('gameState', 'menu');
         rea.setState('camera', this.camera);
         rea.setState('bestLap', Infinity);
@@ -103,6 +104,7 @@ class Game {
 
         rea.setState('input', { accel: false, brake: false, steer: 0 });
 
+        // Add Systems
         rea.addSystem(new PhysicsSystem());
         rea.addSystem(new TimingSystem());
         rea.addSystem(new CameraSystem());

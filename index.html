@@ -6,7 +6,7 @@
     <title>F1 Shakedown</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="margin: 0; overflow: hidden;">
     <div id="hud">
         <div id="telemetry">
             <div id="speed">0 km/h</div>
@@ -16,25 +16,25 @@
     </div>
 
     <div id="menu" class="overlay">
-        <h1>F1 SHAKEDOWN</h1>
-        <button id="btn-start">LARGAR</button>
+        <h1 style="color: #e10600; font-style: italic; font-size: 4rem; text-align: center;">F1 SHAKEDOWN</h1>
+        <button id="btn-start" style="padding: 1rem 3rem; font-size: 1.5rem; background: #e10600; color: white; border: none; cursor: pointer; border-radius: 5px;">LARGAR</button>
     </div>
 
     <canvas id="game-canvas"></canvas>
 
+    <!-- Error Handler for Online Debugging -->
     <script>
-        // Robust Error Handling for Online Deployment
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error("F1-SHAKEDOWN ERROR:", message, "at", source, lineno, colno);
-            alert("Error cargando el juego: " + message + "\\nRevisa la consola (F12) para más detalles.");
+        window.onerror = function(msg, url, line) {
+            console.error("ERROR:", msg, "at", url, "line", line);
             return false;
         };
     </script>
 
+    <!-- Use a more compatible import map for GitHub Pages -->
     <script type="importmap">
     {
         "imports": {
-            "three": "./vendor/three.module.js"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
         }
     }
     </script>

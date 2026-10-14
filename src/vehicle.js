@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CONFIG } from './config.js';
 
 const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -8,7 +8,6 @@ export class F1Vehicle {
         this.scene = scene;
         this.terreno = terreno;
 
-        // Core State
         this.pos = [0, 0, 0];
         this.vel = [0, 0, 0];
         this.w = [0, 0, 0];

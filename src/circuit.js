@@ -6,7 +6,7 @@ export class Circuit {
     constructor(scene) {
         this.scene = scene;
         this.points = [];
-        this.sectorPoints = []; // Points that define sector boundaries
+        this.sectorPoints = [];
         this.generateDailyCircuit();
     }
 
@@ -35,13 +35,11 @@ export class Circuit {
         }
         this.points = points;
 
-        // Define sector boundaries (e.g., split the points into 3 equal parts)
         this.sectorPoints = [];
         const sectorStep = Math.floor(numPoints / CONFIG.NUM_SECTORS);
         for (let i = 1; i < CONFIG.NUM_SECTORS; i++) {
             this.sectorPoints.push(this.points[i * sectorStep]);
         }
-        // The last point (or first) is the Start/Finish line
         this.startFinishLine = this.points[0];
 
         this.buildTrackMesh();

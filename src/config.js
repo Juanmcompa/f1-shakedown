@@ -18,6 +18,19 @@ export const CONFIG = {
     SENSITIVITY: 1.0,
 };
 
+// Alias para compatibilidad con módulos que esperan JUEGO
+export const JUEGO = {
+    gravedad: CONFIG.GRAVITY,
+    paso: CONFIG.TIME_STEP,
+    penalizacion: 8,      // Valor típico de Shakedown
+    maximo: 300,          // Tiempo límite típico
+    cuenta: 3,            // Cuenta regresiva
+    golpes: { desde: 5, porMetro: 0.1 }, // Configuración de daño
+    afuera: 15,           // Distancia máxima al camino
+    sectores: { verde: 1.3, amarillo: 1.6 },
+};
+
+
 // 2. Surface Physics (Suelos)
 export const SUELOS = {
     asfalto: { id: 0, nombre: 'Asfalto', agarre: 0.95, suelto: 1.0, freno: 0.015, pasta: 0,  rugoso: [0.0, 3],    blando: 0,   polvo: 0.05, color: 0x55565c },

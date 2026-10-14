@@ -1,7 +1,79 @@
 import * as THREE from 'three';
+import { CONFIG } from './config.js';
+import { rea } from './rea/core.js';
+
+// --- REA SYSTEMS ---
+
+class PhysicsSystem {
+    update(entities, state, dt) {
+        if (state.gameState !== 'playing') return;
+
+        const vehicle = Array.from(entities).find(e => e instanceof F1Vehicle);
+        const circuit = state.circuit;
+        const input = state.input;
+
+        if (vehicle && circuit && input) {
+            vehicle.applyPhysics(input, dt, circuit);
+            rea.setState('vehicleSpeed', vehicle.getKmh());
+        }
+    }
+}
+
+class TimingSystem {
+    update(entities, state, dt) {
+        if (state.gameState !== 'playing') return;
+
+        const vehicle = Array.from(entities).find(e => e instanceof F1Vehicle);
+        const circuit = state.circuit;
+
+        if (!vehicle || !circuit) return;
+
+        const currentTime = Date.now();
+        const startTime = state.lapStartTime || currentTime;
+        const elapsed = (currentTime - startTime) / 1000;
+
+        const trackInfo = circuit.getClosestPoint(vehicle.position);
+        const distToStart = vehicle.position.distanceTo(circuit.startFinishLine);
+
+        if (distToStart < 10 && elapsed > 5) {
+            const finalLapTime = elapsed;
+            const bestLap = rea.getState('bestLap') || Infinity;
+
+            if (finalLapTime < bestLap) {
+                rea.setState('bestLap', finalLapTime);
+            }
+
+            rea.setState('lapStartTime', currentTime);
+            rea.setState('currentLapTime', 0);
+            rea.setState('lapCompleted', true);
+        }
+
+        rea.setState('currentLapTime', elapsed);
+    }
+}
+
+class CameraSystem {
+    update(entities, state, dt) {
+        if (state.gameState !== 'playing') return;
+
+        const vehicle = Array.from(entities).find(e => e instanceof F1Vehicle);
+        const camera = state.camera;
+
+        if (vehicle && camera) {
+            const offset = new THREE.Vector3(
+                -Math.sin(vehicle.rotation) * 12,
+                6,
+                -Math.cos(vehicle.rotation) * 12
+            );
+            camera.position.copy(vehicle.position).add(offset);
+            camera.lookAt(vehicle.position);
+        }
+    }
+}
+
+// Import vehicle and circuit inside the class or as modules
 import { F1Vehicle } from './vehicle.js';
 import { Circuit } from './circuit.js';
-import { CONFIG } from './config.js';
 
 class Game {
     constructor() {
@@ -17,12 +89,23 @@ class Game {
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
         this.setupLighting();
-        this.circuit = new Circuit(this.scene);
-        this.vehicle = new F1Vehicle(this.scene);
 
-        this.input = { accel: false, brake: false, steer: 0 };
-        this.state = 'menu';
-        this.startTime = 0;
+        rea.setState('gameState', 'menu');
+        rea.setState('camera', this.camera);
+        rea.setState('bestLap', Infinity);
+        rea.setState('lapStartTime', Date.now());
+
+        const circuit = new Circuit(this.scene);
+        rea.setState('circuit', circuit);
+
+        const vehicle = new F1Vehicle(this.scene);
+        rea.addEntity(vehicle);
+
+        rea.setState('input', { accel: false, brake: false, steer: 0 });
+
+        rea.addSystem(new PhysicsSystem());
+        rea.addSystem(new TimingSystem());
+        rea.addSystem(new CameraSystem());
 
         this.initListeners();
         this.loop();
@@ -37,47 +120,42 @@ class Game {
 
     initListeners() {
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'w' || e.key === 'ArrowUp') this.input.accel = true;
-            if (e.key === 's' || e.key === 'ArrowDown') this.input.brake = true;
-            if (e.key === 'a' || e.key === 'ArrowLeft') this.input.steer = -1;
-            if (e.key === 'd' || e.key === 'ArrowRight') this.input.steer = 1;
+            const input = { ...rea.getState('input') };
+            if (e.key === 'w' || e.key === 'ArrowUp') input.accel = true;
+            if (e.key === 's' || e.key === 'ArrowDown') input.brake = true;
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.steer = -1;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.steer = 1;
+            rea.setState('input', input);
         });
 
         window.addEventListener('keyup', (e) => {
-            if (e.key === 'w' || e.key === 'ArrowUp') this.input.accel = false;
-            if (e.key === 's' || e.key === 'ArrowDown') this.input.brake = false;
-            if (e.key === 'a' || e.key === 'ArrowLeft' || e.key === 'd' || e.key === 'ArrowRight') this.input.steer = 0;
+            const input = { ...rea.getState('input') };
+            if (e.key === 'w' || e.key === 'ArrowUp') input.accel = false;
+            if (e.key === 's' || e.key === 'ArrowDown') input.brake = false;
+            if (e.key === 'a' || e.key === 'ArrowLeft' || e.key === 'd' || e.key === 'ArrowRight') input.steer = 0;
+            rea.setState('input', input);
         });
 
         document.getElementById('btn-start').addEventListener('click', () => {
-            this.state = 'playing';
-            this.startTime = Date.now();
+            rea.setState('gameState', 'playing');
+            rea.setState('lapStartTime', Date.now());
             document.getElementById('menu').style.display = 'none';
         });
-    }
 
-    updateHUD() {
-        const elapsed = (Date.now() - this.startTime) / 1000;
-        document.getElementById('speed').textContent = `${this.vehicle.getKmh()} km/h`;
-        document.getElementById('lap-time').textContent = `${elapsed.toFixed(3)} s`;
+        window.addEventListener('rea-state-change', (e) => {
+            const { key, value } = e.detail;
+            if (key === 'vehicleSpeed') {
+                document.getElementById('speed').textContent = `${value} km/h`;
+            }
+            if (key === 'currentLapTime') {
+                document.getElementById('lap-time').textContent = `${value.toFixed(3)} s`;
+            }
+        });
     }
 
     loop() {
         requestAnimationFrame(() => this.loop());
-
-        if (this.state === 'playing') {
-            this.vehicle.update(this.input, CONFIG.TIME_STEP, this.circuit);
-            this.updateHUD();
-
-            const offset = new THREE.Vector3(
-                -Math.sin(this.vehicle.rotation) * 12,
-                6,
-                -Math.cos(this.vehicle.rotation) * 12
-            );
-            this.camera.position.copy(this.vehicle.position).add(offset);
-            this.camera.lookAt(this.vehicle.position);
-        }
-
+        rea.update(CONFIG.TIME_STEP);
         this.renderer.render(this.scene, this.camera);
     }
 }

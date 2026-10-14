@@ -1,0 +1,18 @@
+{
+  "name": "f1-shakedown",
+  "version": "0.1.0",
+  "description": "Daily F1 procedural racing challenge",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "echo 'Use Live Server or a local HTTP server to run index.html'"
+  },
+  "keywords": [
+    "f1",
+    "threejs",
+    "procedural",
+    "game"
+  ],
+  "author": "Juan M. Comparini",
+  "license": "MIT"
+}

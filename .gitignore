@@ -1,0 +1,9 @@
+# Git ignore for F1 Shakedown
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+dist/
+build/

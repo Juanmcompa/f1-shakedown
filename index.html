@@ -22,6 +22,15 @@
 
     <canvas id="game-canvas"></canvas>
 
+    <script>
+        // Robust Error Handling for Online Deployment
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("F1-SHAKEDOWN ERROR:", message, "at", source, lineno, colno);
+            alert("Error cargando el juego: " + message + "\\nRevisa la consola (F12) para más detalles.");
+            return false;
+        };
+    </script>
+
     <script type="importmap">
     {
         "imports": {

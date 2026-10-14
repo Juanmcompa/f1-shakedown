@@ -16,7 +16,10 @@ export const CONFIG = {
     // Circuit
     TRACK_WIDTH: 15,
     CURB_WIDTH: 2.0,
-    SEGMENTS_COUNT: 30, // How many waypoints the daily circuit has
+    SEGMENTS_COUNT: 30,
+
+    // Timing
+    NUM_SECTORS: 3,
 
     // Controls
     SENSITIVITY: 1.0,

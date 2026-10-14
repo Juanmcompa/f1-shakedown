@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { CONFIG } from './settings.js';
 
 const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -34,16 +34,12 @@ export class F1Vehicle {
 
     paso(ent, dt) {
         const prevAccel = this.accel.clone();
-
-        const forces = this.calculateForces(ent, circuit); // Note: circuit passed via main.js usually
-
-        // If circuit is not available in this scope, we use the provided terreno
-        const currentForces = this.calculateForcesFixed(ent);
+        const forces = this.calculateForcesFixed(ent);
 
         this.accel.set(
-            currentForces.x / this.masa,
-            currentForces.y / this.masa,
-            currentForces.z / this.masa
+            forces.x / this.masa,
+            forces.y / this.masa,
+            forces.z / this.masa
         );
 
         this.pos.x += this.vel.x * dt + 0.5 * this.accel.x * dt * dt;

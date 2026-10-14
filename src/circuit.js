@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { CONFIG } from './config.js';
+import { CONFIG } from './settings.js';
 
 export class Circuit {
     constructor(scene) {
@@ -46,8 +46,6 @@ export class Circuit {
 
     buildTrackMesh() {
         const curve = new THREE.CatmullRomCurve3(this.points, true);
-
-        // 1. Main Track Surface (Optimized Geometry)
         const trackGeo = new THREE.TubeGeometry(curve, 128, CONFIG.TRACK_WIDTH / 2, 12, true);
         const trackMat = new THREE.MeshStandardMaterial({
             color: 0x222222,
@@ -55,11 +53,9 @@ export class Circuit {
             metalness: 0.2
         });
         const trackMesh = new THREE.Mesh(trackGeo, trackMat);
-        trackMesh.scale.y = 0.02; // Very flat for F1
+        trackMesh.scale.y = 0.02;
         this.scene.add(trackMesh);
 
-        // 2. INSTANCED CURBS (Pianos) - Massive performance gain
-        // We use one geometry and render it many times via GPU
         const curbGeo = new THREE.BoxGeometry(1, 0.1, 0.5);
         const curbMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const instancedCurbs = new THREE.InstancedMesh(curbGeo, curbMat, 1000);
@@ -70,17 +66,13 @@ export class Circuit {
         for (let i = 0; i < 1; i += 0.01) {
             const pos = curve.getPointAt(i);
             const tangent = curve.getTangentAt(i);
-
-            // Calculate perpendicular vector for curb placement
             const perp = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
 
-            // Left Curb
             dummy.position.copy(pos).addScaledVector(perp, CONFIG.TRACK_WIDTH / 2);
             dummy.lookAt(pos.x + tangent.x, 0, pos.z + tangent.z);
             dummy.updateMatrix();
             instancedCurbs.setMatrixAt(count++, dummy.matrix);
 
-            // Right Curb
             dummy.position.copy(pos).addScaledVector(perp, -CONFIG.TRACK_WIDTH / 2);
             dummy.lookAt(pos.x + tangent.x, 0, pos.z + tangent.z);
             dummy.updateMatrix();

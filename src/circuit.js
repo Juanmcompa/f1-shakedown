@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CONFIG } from './config.js';
 
 export class Circuit {
@@ -46,17 +46,49 @@ export class Circuit {
 
     buildTrackMesh() {
         const curve = new THREE.CatmullRomCurve3(this.points, true);
-        const trackGeo = new THREE.TubeGeometry(curve, 100, 7.5, 12, true);
-        const trackMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+
+        // 1. Main Track Surface (Optimized Geometry)
+        const trackGeo = new THREE.TubeGeometry(curve, 128, CONFIG.TRACK_WIDTH / 2, 12, true);
+        const trackMat = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.8,
+            metalness: 0.2
+        });
         const trackMesh = new THREE.Mesh(trackGeo, trackMat);
-        trackMesh.scale.y = 0.05;
+        trackMesh.scale.y = 0.02; // Very flat for F1
         this.scene.add(trackMesh);
 
-        const curbGeo = new THREE.TubeGeometry(curve, 100, 8.2, 12, true);
-        const curbMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-        const curbMesh = new THREE.Mesh(curbGeo, curbMat);
-        curbMesh.scale.y = 0.04;
-        this.scene.add(curbMesh);
+        // 2. INSTANCED CURBS (Pianos) - Massive performance gain
+        // We use one geometry and render it many times via GPU
+        const curbGeo = new THREE.BoxGeometry(1, 0.1, 0.5);
+        const curbMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const instancedCurbs = new THREE.InstancedMesh(curbGeo, curbMat, 1000);
+
+        const dummy = new THREE.Object3D();
+        let count = 0;
+
+        for (let i = 0; i < 1; i += 0.01) {
+            const pos = curve.getPointAt(i);
+            const tangent = curve.getTangentAt(i);
+
+            // Calculate perpendicular vector for curb placement
+            const perp = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+
+            // Left Curb
+            dummy.position.copy(pos).addScaledVector(perp, CONFIG.TRACK_WIDTH / 2);
+            dummy.lookAt(pos.x + tangent.x, 0, pos.z + tangent.z);
+            dummy.updateMatrix();
+            instancedCurbs.setMatrixAt(count++, dummy.matrix);
+
+            // Right Curb
+            dummy.position.copy(pos).addScaledVector(perp, -CONFIG.TRACK_WIDTH / 2);
+            dummy.lookAt(pos.x + tangent.x, 0, pos.z + tangent.z);
+            dummy.updateMatrix();
+            instancedCurbs.setMatrixAt(count++, dummy.matrix);
+        }
+
+        instancedCurbs.count = count;
+        this.scene.add(instancedCurbs);
     }
 
     getClosestPoint(pos) {

@@ -1,64 +1,34 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { CONFIG } from './config.js';
 
-const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
+// Pre-allocated vectors to avoid GC pressure in the hot path (Preventing micro-stutters)
+const V_TEMP = new THREE.Vector3();
+const V_ACCEL = new THREE.Vector3();
+const V_FORWARD = new THREE.Vector3();
 
 export class F1Vehicle {
     constructor(scene, terreno) {
         this.scene = scene;
         this.terreno = terreno;
 
-        this.pos = [0, 0, 0];
-        this.vel = [0, 0, 0];
-        this.w = [0, 0, 0];
-        this.q = [0, 0, 0, 1];
+        // State - Using Vector3 for position/velocity for high-precision calculations
+        this.pos = new THREE.Vector3(0, 0, 0);
+        this.vel = new THREE.Vector3(0, 0, 0);
+        this.accel = new THREE.Vector3(0, 0, 0);
+        this.rotation = 0;
+        this.speed = 0;
 
-        this.adelante = [0, 0, -1];
-        this.arriba = [0, 1, 0];
-        this.derecha = [1, 0, 0];
-
-        this.volante = 0;
-        this.gas = 0;
-        this.freno = 1;
-        this.sentido = 1;
-        this.velocidad = 0;
-        this.impacto = 0;
-
-        this.masa = 798;
-        this.inercia = [1500, 3000, 1500];
-        this.trocha = 2.0;
-        this.ejes = 1.5;
-        this.centro = 0.2;
-        this.resorteLargo = 0.3;
-        this.resorte = 50000;
-        this.amortigua = [4000, 6000];
-        this.radio = 0.3;
-        this.aire = 0.25;
-        this.giro = 0.4;
-        this.giroVel = 4.0;
-
-        this.ruedas = [];
-        for (let i = 0; i < 4; i++) {
-            this.ruedas.push({
-                x: (i % 2 ? 1 : -1) * this.trocha,
-                z: (i < 2 ? -1 : 1) * this.ejes + this.centro,
-                delantera: i < 2,
-                empuja: i < 2 ? 0 : 1,
-                largo: this.resorteLargo,
-                toca: false,
-                patina: 0,
-                carga: 0,
-                tope: 0,
-                vl: 0,
-                p: [0, 0, 0]
-            });
-        }
+        // F1 Parameters
+        this.masa = 798; // kg
+        this.downforceCoeff = CONFIG.DOWNFORCE_COEFF;
+        this.baseGrip = CONFIG.BASE_GRIP;
 
         this.initMesh();
     }
 
     initMesh() {
         const group = new THREE.Group();
+        // Chassis: Low and wide
         const body = new THREE.Mesh(
             new THREE.BoxGeometry(1.8, 0.6, 4.5),
             new THREE.MeshStandardMaterial({ color: 0xe10600 })
@@ -68,77 +38,88 @@ export class F1Vehicle {
         this.scene.add(this.mesh);
     }
 
-    paso(ent, dt) {
-        const p = this.pos, v = this.vel, w = this.w, q = this.q, m = this.masa, g = CONFIG.GRAVITY;
-        const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+    /**
+     * VELOCITY VERLET INTEGRATOR
+     * Replaces Euler integration to eliminate "jitter" and instability at high speeds.
+     * Formula:
+     * p(t+dt) = p(t) + v(t)dt + 0.5*a(t)dt^2
+     * v(t+dt) = v(t) + 0.5*(a(t) + a(t+dt))dt
+     */
+    paso(input, dt, circuit) {
+        // Store previous acceleration for the Velocity Verlet formula
+        const prevAccel = this.accel.clone();
 
-        const rx = 1 - 2 * (qy * qy + qz * qz), ry = 2 * (qx * qy + qw * qz), rz = 2 * (qx * qz - qw * qy);
-        const ux = 2 * (qx * qy - qw * qz), uy = 1 - 2 * (qx * qx + qz * qz), uz = 2 * (qy * qz + qw * qx);
-        const bx = 2 * (qx * qz + qw * qy), by = 2 * (qy * qz - qw * qx), bz = 1 - 2 * (qx * qx + qy * qy);
-        const fx = -bx, fy = -by, fz = -bz;
-        const vf = v[0] * fx + v[1] * fy + v[2] * fz;
+        // 1. Calculate Forces for current state
+        const forces = this.calculateForces(input, circuit);
 
-        let quiereGas = 0;
-        if (ent.y > 0) { quiereGas = ent.y; this.sentido = 1; }
-        else if (ent.y < 0) { quiereGas = -ent.y; this.sentido = -1; }
+        // Newton's Second Law: a = F / m
+        this.accel.set(
+            forces.x / this.masa,
+            forces.y / this.masa,
+            forces.z / this.masa
+        );
 
-        this.gas += lim(quiereGas - this.gas, -dt * 6, dt / 1.0);
-        this.volante += lim(ent.x - this.volante, -this.giroVel * dt, this.giroVel * dt);
+        // 2. Update Position (Verlet Step 1)
+        this.pos.x += this.vel.x * dt + 0.5 * this.accel.x * dt * dt;
+        this.pos.y += this.vel.y * dt + 0.5 * this.accel.y * dt * dt;
+        this.pos.z += this.vel.z * dt + 0.5 * this.accel.z * dt * dt;
 
-        const giroRuedas = lim(this.volante * this.giro, -this.giro, this.giro);
-        let empuje = this.gas * this.sentido * Math.min(CONFIG.ACCELERATION * m, 15000 / Math.max(Math.abs(vf), 1));
+        // 3. Update Velocity (Verlet Step 2)
+        this.vel.x += 0.5 * (prevAccel.x + this.accel.x) * dt;
+        this.vel.y += 0.5 * (prevAccel.y + this.accel.y) * dt;
+        this.vel.z += 0.5 * (prevAccel.z + this.accel.z) * dt;
 
-        const va = Math.hypot(v[0], v[1], v[2]);
-        let Fx = -this.aire * va * v[0], Fy = -m * g - this.aire * va * v[1], Fz = -this.aire * va * v[2];
-        let Tx = 0, Ty = 0, Tz = 0;
+        // 4. Handle Rotation and Steering
+        this.updateRotation(input, dt);
 
-        const total = this.resorteLargo + this.radio;
-        let enPiso = 0;
-
-        for (const r of this.ruedas) {
-            const ax = p[0] + rx * r.x + ux * 0 + bx * r.z;
-            const ay = p[1] + ry * r.x + uy * 0 + by * r.z;
-            const az = p[2] + rz * r.x + uz * 0 + bz * r.z;
-
-            const h = this.terreno.altura(ax, az);
-            const t = (ay - h) / uy;
-            r.toca = t < total;
-            r.largo = lim(t - this.radio, 0, this.resorteLargo);
-
-            if (!r.toca) continue;
-            enPiso++;
-
-            const comp = lim(total - t, 0, 0.3);
-            let Fs = this.resorte * comp + this.amortigua[0] * 0;
-
-            const Nf = Fs / 1.0;
-            r.carga = Nf;
-
-            const aeroGrip = 1.0 + (CONFIG.DOWNFORCE_COEFF * vf * vf);
-            const tope = Nf * aeroGrip;
-
-            const ang = r.delantera ? giroRuedas : 0;
-            const co = Math.cos(ang), si = Math.sin(ang);
-            const lx = fx * co + rx * si, lz = fz * co + rz * si;
-
-            let Fl = (r.empuja) ? empuje / 4 : 0;
-            if (ent.brake) Fl -= 5000 * (r.delantera ? 0.7 : 0.3);
-
-            const Ax = lx * Fl, Az = lz * Fl;
-            Fx += Ax; Fz += Az;
-        }
-
-        const im = dt / m;
-        v[0] += Fx * im; v[1] += Fy * im; v[2] += Fz * im;
-
-        const rotVel = this.volante * (vf / 20);
-        this.rotation += rotVel * dt;
-
-        p[0] += v[0] * dt; p[1] += v[1] * dt; p[2] += v[2] * dt;
-
-        this.mesh.position.set(p[0], p[1], p[2]);
+        // 5. Sync Visual Mesh
+        this.mesh.position.copy(this.pos);
         this.mesh.rotation.y = this.rotation;
     }
 
-    getKmh() { return Math.round(this.velocidad * 3.6); }
+    calculateForces(input, circuit) {
+        const speed = this.vel.length();
+
+        // --- AERODYNAMIC MODEL ---
+        // Downforce increases with the square of the velocity: Fd = 0.5 * rho * v^2 * Cl * A
+        const downforce = this.downforceCoeff * speed * speed;
+
+        // Base forces: Gravity + Downforce (Y axis)
+        let fx = 0, fy = -this.masa * CONFIG.GRAVITY + downforce, fz = 0;
+
+        // Calculate Forward Vector based on current rotation
+        V_FORWARD.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation);
+
+        // Longitudinal Forces: Acceleration and Braking
+        const driveForce = input.accel ? CONFIG.ACCELERATION * this.masa : 0;
+        const brakeForce = input.brake ? CONFIG.BRAKING_FORCE * this.masa : 0;
+        const totalLongitudinal = driveForce + brakeForce;
+
+        fx += V_FORWARD.x * totalLongitudinal;
+        fz += V_FORWARD.z * totalLongitudinal;
+
+        // Air Resistance (Drag)
+        const drag = -0.3 * speed * this.vel.x;
+        fx += drag;
+        fz += -0.3 * speed * this.vel.z;
+
+        return { x: fx, y: fy, z: fz };
+    }
+
+    updateRotation(input, dt) {
+        const speed = this.vel.length();
+        if (speed < 1) return;
+
+        // AERODYNAMIC GRIP: Lateral grip increases as speed increases due to downforce
+        const currentGrip = this.baseGrip + (this.downforceCoeff * speed * speed);
+
+        // Steering sensitivity: less steering at high speed to prevent spinning out
+        const steerPower = 2.0 * (1.0 / (1.0 + speed * 0.05)) * currentGrip;
+
+        this.rotation += input.steer * steerPower * dt;
+    }
+
+    getKmh() {
+        return Math.round(this.vel.length() * 3.6);
+    }
 }

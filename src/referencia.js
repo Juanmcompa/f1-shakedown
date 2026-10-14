@@ -2,13 +2,13 @@
 // Sirve para tres cosas: el tiempo de referencia de cada sector (de ahi salen los cuadraditos de colores),
 // la velocidad a la que conviene llegar a cada curva (la usan los pilotos de prueba) y saber cuanto dura la pista.
 // No maneja nada: es una cuenta sobre el trazado, metro por metro.
-import { JUEGO, SUELO } from './config.js';
+import { CONFIG, SUELO } from './config.js';
 
 const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 // T: el terreno. C: el auto (de config.js). o.margen: metros que deja libres a cada borde. o.usa: que parte del agarre aprovecha (0 a 1).
 export function crearReferencia(T, C, o = {}) {
-  const P = T.camino, n = P.n, g = JUEGO.gravedad, margen = o.margen || 1.4, usa = o.usa || 0.76;
+  const P = T.camino, n = P.n, g = CONFIG.GRAVITY, margen = o.margen || 1.4, usa = o.usa || 0.76;
   const tramos = T.etapa.tramos;
 
   // --- 1. la trazada: cuanto se corre del medio en cada metro (positivo = a la derecha) ---

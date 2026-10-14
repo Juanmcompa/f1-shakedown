@@ -22,7 +22,6 @@
 
     <canvas id="game-canvas"></canvas>
 
-    <!-- Error Handler for Online Debugging -->
     <script>
         window.onerror = function(msg, url, line) {
             console.error("ERROR:", msg, "at", url, "line", line);
@@ -30,7 +29,7 @@
         };
     </script>
 
-    <!-- Use a more compatible import map for GitHub Pages -->
+    <!-- Fix: Only one source for Three.js, and it's a reliable CDN -->
     <script type="importmap">
     {
         "imports": {

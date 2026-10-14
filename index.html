@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>F1 Shakedown</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="hud">
+        <div id="telemetry">
+            <div id="speed">0 km/h</div>
+            <div id="lap-time">00:00.000</div>
+            <div id="gear">N</div>
+        </div>
+    </div>
+
+    <div id="menu" class="overlay">
+        <h1>F1 SHAKEDOWN</h1>
+        <button id="btn-start">LARGAR</button>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./vendor/three.module.js"
+        }
+    }
+    </script>
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>

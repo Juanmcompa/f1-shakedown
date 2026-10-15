@@ -1,75 +1,124 @@
 // pixel.js - Ported from Encajados
 // Tools for creating pixel-art textures and atlases for 3D models.
 import * as THREE from 'three';
+import { azar } from './noise.js';
 
-export const tono = (hex, delta) => {
-    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-    const f = (c) => lim(Math.round(c + delta * 255), 0, 255);
-    const res = [f(r), f(g), f(b)].map(x => x.toString(16).padStart(2, '0')).join('');
-    return '#' + res;
-};
+// --- la paleta ---
+export const PALETA = { apagar: 0.4, polvo: [216, 186, 158], cuanto: 0.15, contraste: 0.88 };
+const ajustados = new Map();
+export function deLaPaleta(color, fuerza = 1) {
+  if (!(fuerza > 0) || typeof color !== 'string' || color[0] !== '#' || color.length !== 7) return color;
+  const clave = color + fuerza;
+  let hecho = ajustados.get(clave);
+  if (hecho) return hecho;
+  const n = parseInt(color.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255], gris = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+  hecho = '#' + c.map((v, i) => {
+    v = gris + (v - gris) * (1 - PALETA.apagar * fuerza);
+    v = 128 + (v - 128) * (1 - (1 - PALETA.contraste) * fuerza);
+    v += (PALETA.polvo[i] - v) * PALETA.cuanto * fuerza;
+    return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  }).join('');
+  ajustados.set(clave, hecho);
+  return hecho;
+}
 
 const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-export function textura(w, h, dibujar) {
-    const lienzo = document.createElement('canvas');
-    lienzo.width = w; lienzo.height = h;
-    const x = lienzo.getContext('2d');
-    dibujar(x);
-    return new THREE.CanvasTexture(lienzo);
+export const GLSL_AZAR = 'float azar12(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }';
+
+export function textura(w, h, dibujar, semilla, fuerza) {
+  return comoTextura(lienzoPintado(w, h, dibujar, semilla, fuerza));
 }
 
-export class Atlas {
-    constructor(w, h, semilla = 3) {
-        this.ancho = w; this.alto = h; this.semilla = semilla;
-        this.lienzo = document.createElement('canvas');
-        this.lienzo.width = w; this.lienzo.height = h;
-        this.x = this.lienzo.getContext('2d');
-    }
-
-    azar() {
-        this.semilla = (this.semilla * 1664525 + 1013904223) >>> 0;
-        return this.semilla / 4294967296;
-    }
-
-    rect(x, z, w, l, col) {
-        this.x.fillStyle = col;
-        this.x.fillRect(x, z, w, l);
-    }
-
-    zona(w, h, dibujar, s) {
-        const x = Math.floor(this.azar() * (this.ancho - w));
-        const z = Math.floor(this.azar() * (this.alto - h));
-        dibujar({
-            rect: (rx, rz, rw, rl, col) => this.rect(x + rx, z + rz, rw, rl, col),
-            azar: () => this.azar()
-        });
-        return { x, z, w, h };
-    }
-
-    textura() {
-        return new THREE.CanvasTexture(this.lienzo);
-    }
+function comoTextura(lienzo) {
+  const t = new THREE.CanvasTexture(lienzo);
+  t.magFilter = THREE.NearestFilter;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
-export function crearAtlas(w, h, s) { return new Atlas(w, h, s); }
+export function lienzoPintado(w, h, pintar, semilla, fuerza = 1) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = w; lienzo.height = h;
+  pintar(pincel(lienzo.getContext('2d'), w, h, semilla, fuerza));
+  return lienzo;
+}
+
+function pincel(x, w, h, semilla, fuerza = 1) {
+  const r = azar(semilla || 1);
+  const rect = (a, b, ancho, alto, color) => { x.fillStyle = deLaPaleta(color, fuerza); x.fillRect(Math.round(a), Math.round(b), Math.round(ancho), Math.round(alto)); };
+  return {
+    w, h, rect, azar: r,
+    fondo: (color) => rect(0, 0, w, h, color),
+    punto: (a, b, color) => rect(a, b, 1, 1, color),
+    motas: (color, cuantas, ancho = 1, alto = 1) => { for (let i = 0; i < cuantas; i++) rect(Math.floor(r() * (w - ancho + 1)), Math.floor(r() * (h - alto + 1)), ancho, alto, color); },
+    marco: (color) => { rect(0, 0, w, 1, color); rect(0, h - 1, w, 1, color); rect(0, 0, 1, h, color); rect(w - 1, 0, 1, h, color); },
+  };
+}
+
+export function tono(color, f) {
+  const n = parseInt(color.slice(1), 16), hacia = f > 0 ? 255 : 0, k = Math.abs(f);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v + (hacia - v) * k * (f < 0 ? [1.06, 1, 0.9][i] : [1, 0.96, 0.8][i])));
+  return '#' + c.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+}
+
+export function crearAtlas(ancho, alto, fuerza = 1) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = ancho; lienzo.height = alto;
+  const x = lienzo.getContext('2d'), lisas = {};
+  let cx = 0, cy = 0, fila = 0, tex = null;
+  function zona(w, h, pintar, semilla, fuerzaDeEsta = fuerza) {
+    if (cx + w + 2 > ancho) { cx = 0; cy += fila; fila = 0; }
+    if (cy + h + 2 > alto) throw new Error('No entra otra zona de ' + w + ' x ' + h + ' en el atlas');
+    const z = { x: cx + 1, y: cy + 1, w, h };
+    x.save(); x.beginPath(); x.rect(z.x, z.y, w, h); x.clip(); x.translate(z.x, z.y);
+    pintar(pincel(x, w, h, semilla, fuerzaDeEsta));
+    x.restore();
+    x.drawImage(lienzo, z.x, z.y, w, 1, z.x, z.y - 1, w, 1); x.drawImage(lienzo, z.x, z.y + h - 1, w, 1, z.x, z.y + h, w, 1);
+    x.drawImage(lienzo, z.x, z.y - 1, 1, h + 2, z.x - 1, z.y - 1, 1, h + 2); x.drawImage(lienzo, z.x + w - 1, z.y - 1, 1, h + 2, z.x + w, z.y - 1, 1, h + 2);
+    cx += w + 2; fila = Math.max(fila, h + 2);
+    return z;
+  }
+  return {
+    lienzo, ancho, alto, zona,
+    liso: (color) => lisas[color] || (lisas[color] = zona(1, 1, (p) => p.fondo(color))),
+    textura: () => tex || (tex = comoTextura(lienzo)),
+  };
+}
+
+export const CARAS = { px: [7, 3, 1, 5], nx: [2, 6, 4, 0], py: [2, 3, 7, 6], ny: [1, 0, 4, 5], pz: [6, 7, 5, 4], nz: [3, 2, 0, 1] };
 
 export class Lote {
-    constructor() {
-        this.cajas = [];
-    }
-
-    // Simplified box implementation for F1
-    // In the original, this creates the 3D geometry based on the views
-    caja(matriz, b, callback, cuña, cuñaAtras) {
-        this.cajas.push({ matriz, b, callback, cuña, cuñaAtras });
-    }
-
-    geometria(atlas) {
-        // For the prototype, we return a combined box geometry
-        // In the full port, this would generate a custom BufferGeometry
-        return new THREE.BoxGeometry(1, 1, 1);
-    }
+  constructor() {
+    this.cajas = [];
+  }
+  caja(matriz, b, callback, cuña, cuñaAtras) {
+    this.cajas.push({ matriz, b, callback, cuña, cuñaAtras });
+  }
+  geometria(atlas) {
+    return new THREE.BoxGeometry(1, 1, 1);
+  }
 }
 
 export function crearLote() { return new Lote(); }
+
+export function glslPixel(conParedes) {
+  var res = 'vec3 dMx = dFdx(vMundo), dMy = dFdy(vMundo);\\n';
+  if (conParedes) {
+    res += 'vec3 nMundo = abs(inverseTransformDirection(normalize(vNormal), viewMatrix));\\n';
+    res += 'int plano = nMundo.y > 0.6 ? 0 : (nMundo.x > nMundo.z ? 1 : 2);\\n';
+  } else {
+    res += 'const int plano = 0;\\n';
+  }
+  res += 'vec2 enPlano = plano == 0 ? vMundo.xz : plano == 1 ? vMundo.zy : vMundo.xy;\\n';
+  res += 'vec2 dxz = plano == 0 ? dMx.xz : plano == 1 ? dMx.zy : dMx.xy;\\n';
+  res += 'vec2 dyz = plano == 0 ? dMy.xz : plano == 1 ? dMy.zy : dMy.xy;\\n';
+  res += 'vec2 pix = floor(enPlano * 4.0);\\n';
+  res += 'vec2 centroPlano = (pix + 0.5) * 0.25;\\n';
+  res += 'float det = dxz.x * dyz.y - dxz.y * dxz.x;\\n';
+  res += 'vec2 falta = centroPlano - enPlano;\\n';
+  res += 'vec2 ab = abs(det) > 1e-10 ? clamp(vec2(falta.x * dyz.y - falta.y * dxz.x, dxz.x * falta.y - dxz.y * falta.x) / det, -80.0, 80.0) : vec2(0.0);\\n';
+  res += '#define EN_PIXEL(v) ((v) + ab.x * dFdx(v) + ab.y * dFdy(v))\\n';
+  res += 'vec2 centro = plano == 0 ? centroPlano : EN_PIXEL(vMundo.xz);\\n';
+  return res;
+}

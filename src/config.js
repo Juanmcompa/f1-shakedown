@@ -6,7 +6,7 @@ export const CONFIG = {
     GRAVITY: 9.81,
     TIME_STEP: 1/60,
     MAX_SPEED: 340, // km/h
-    ACCELERATION: 18.0, // m/s^2
+    ACCELERATION: 18.0, // m/s^2,
     BRAKING_FORCE: -30.0,
     BASE_GRIP: 1.1,
     DOWNFORCE_COEFF: 0.006,
@@ -17,19 +17,6 @@ export const CONFIG = {
     NUM_SECTORS: 3,
     SENSITIVITY: 1.0,
 };
-
-// Alias para compatibilidad con módulos que esperan JUEGO
-export const JUEGO = {
-    gravedad: CONFIG.GRAVITY,
-    paso: CONFIG.TIME_STEP,
-    penalizacion: 8,      // Valor típico de Shakedown
-    maximo: 300,          // Tiempo límite típico
-    cuenta: 3,            // Cuenta regresiva
-    golpes: { desde: 5, porMetro: 0.1 }, // Configuración de daño
-    afuera: 15,           // Distancia máxima al camino
-    sectores: { verde: 1.3, amarillo: 1.6 },
-};
-
 
 // 2. Surface Physics (Suelos)
 export const SUELOS = {
@@ -48,3 +35,56 @@ export const SUELOS = {
 };
 
 export const SUELO = Object.values(SUELOS);
+
+// --- Compatibilidad y Valores Globales ---
+export const AYUDA = { auto: { firme: 0.8, estable: 1.1, alinea: 0.85 }, ritmo: 0.7, frena: 3.6, suave: 2.5, suelta: 0.5, volante: 1, cede: 0.6, mano: 2.6, mira: 0.3 };
+export const GUSTOS = { ayuda: false, trazada: false, sensible: 55, botones: false, lejos: 1, pedales: 1, efectos: true, sonido: true, voz: true };
+export const SERVIDOR = 'https://shakedown.juanmcomparini.workers.dev';
+export const FIRMA = { etapa: 'Early Access', aviso: 'App en desarrollo', autor: 'Juan M. Comparini' };
+
+export const JUEGO = {
+    paso: CONFIG.TIME_STEP,
+    gravedad: CONFIG.GRAVITY,
+    cuenta: 3,
+    penalizacion: 8,
+    afuera: 26,
+    maximo: 480,
+    golpes: { desde: 5, porMetro: 3.3 },
+    sectores: { verde: 1.3, amarillo: 1.6 },
+};
+
+export const gradosDeInclinacion = (sensible) => 24 * 2 ** ((55 - sensible) / 55);
+
+export const CAMARAS = [
+  { id: 'aerea',  nombre: 'Aérea',        dist: [46, 74], alto: [60, 47], fov: 30, sigue: 0.8, mira: [3, 20], celu: { parado: [0.52, 0.43], acostado: [0.54, 0.46] } },
+  { id: 'atras',  nombre: 'De atrás',     dist: [9, 14],  alto: [20, 16], fov: 58, sigue: 0.3, mira: [2, 6], celu: { parado: [1.2, 1.12], acostado: [1.05, 0.95] }, fovParado: 68 },
+  { id: 'arriba', nombre: 'Desde arriba', dist: [74, 104], alto: [78, 76], fov: 30, sigue: 1.0, mira: [5, 21], celu: { parado: [0.62, 0.58], acostado: [0.62, 0.56] } },
+];
+
+// --- Autos (Rescatados de encajados para evitar errores de export) ---
+const COMUN = {
+  frenos: 0.95, frenoAdelante: 0.7, reversa: 0.5, aceleraEn: 0.3, giroVel: 3.2, patinaje: 0.7,
+  deriva: 0.11, firme: 0.5, colaFirme: 1.03, alinea: 0.6, giroFino: 0.26, estable: 0.3,
+  chasis: [150000, 9000, 0.5], roce: 0.35,
+};
+
+export const AUTOS = {
+  vitarita: Object.assign({}, COMUN, {
+    nombre: 'La Vitarita', detalle: '4x4 del 92, corta y levantada', emoji: '🚙', modelo: 'vitarita',
+    masa: 1080, inercia: [1420, 1420, 490], ejes: 1.1, trocha: 0.72, radio: 0.37, anclaje: 0.05, centro: 0.05,
+    resorteLargo: 0.5, recorrido: 0.3, resorte: 21000, amortigua: [2400, 3500],
+    empuje: 0.6, potencia: 66000, aire: 3.4, traccion: [0.5, 0.5], frenoMotor: 0.12, cubiertas: [0.97, 1.06],
+    giro: 0.58, lateral: 0.3, alturaLateral: 0.42,
+    caja: [0.8, 1.8, -0.4, 1.0], choque: [0.85, 1.05],
+  }),
+  kacito: Object.assign({}, COMUN, {
+    nombre: 'El Kacito', detalle: 'chiquito, tracción delantera y chapón', emoji: '🚗', modelo: 'kacito',
+    masa: 900, inercia: [1200, 1230, 390], ejes: 1.22, trocha: 0.7, radio: 0.29, anclaje: 0.05, centro: 0.2,
+    resorteLargo: 0.4, recorrido: 0.22, resorte: 20500, amortigua: [2150, 3150],
+    empuje: 0.64, potencia: 64000, aire: 2.1, traccion: [1, 0], frenoMotor: 0.1, cubiertas: [1.08, 1],
+    giro: 0.6, lateral: 0.34, alturaLateral: 0.68,
+    caja: [0.8, 1.8, -0.3, 0.85], choque: [0.85, 1.05],
+  }),
+};
+
+export const REFERENCIA = 'vitarita';

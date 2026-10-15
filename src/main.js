@@ -198,7 +198,7 @@ function ponerAuto(id) {
   if (!AUTOS[id]) id = 'vitarita';
   if (dibujo) escena.remove(dibujo.grupo);
   club.ponerAuto(id);
-  c = crearAuto(T, conAyuda ? { ...AUTOS[id], ...AYUDA.auto } : AUTOS[id]);
+  c = crearAuto(escena, T, conAyuda ? { ...AUTOS[id], ...AYUDA.auto } : AUTOS[id]);
   if (conAyuda) ayuda.preparar(AUTOS[id], refDe(id));
   if (conTrazada) trazada.usar(refDe(id));
   dibujo = crearDibujo(escena, AUTOS[id]);

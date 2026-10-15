@@ -4,9 +4,10 @@ import { CONFIG } from './settings.js';
 const lim = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class F1Vehicle {
-    constructor(scene, terreno) {
+    constructor(scene, terreno, config) {
         this.scene = scene;
         this.terreno = terreno;
+        this.config = config;
 
         this.pos = new THREE.Vector3(0, 0, 0);
         this.vel = new THREE.Vector3(0, 0, 0);
@@ -14,7 +15,7 @@ export class F1Vehicle {
         this.rotation = 0;
         this.speed = 0;
 
-        this.masa = 798;
+        this.masa = config.masa || 798;
         this.downforceCoeff = CONFIG.DOWNFORCE_COEFF;
         this.baseGrip = CONFIG.BASE_GRIP;
 
@@ -86,4 +87,8 @@ export class F1Vehicle {
     }
 
     getKmh() { return Math.round(this.vel.length() * 3.6); }
+}
+
+export function crearAuto(escena, terreno, config) {
+    return new F1Vehicle(escena, terreno, config);
 }

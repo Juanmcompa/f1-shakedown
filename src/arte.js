@@ -53,13 +53,13 @@ const PISOS = {
     veces(44, () => piedrita(p, '#efe0be', '#a38a62'));
     veces(16, () => canto(p, ['#aaa69a', '#c0bcb0', '#d8d4c6'], '#9c8460'));
   },
-  tierra: (p) => {   // tierra
-    p.fondo('#9c5f3a');
-    veces(18, () => mancha(p, '#8b5232', entero(p, 4, 7)));
-    veces(10, () => mancha(p, '#a96a43', entero(p, 3, 5)));
-    veces(12, () => grieta(p, '#74432a', entero(p, 3, 6)));
-    p.motas('#74432a', 36); p.motas('#b77a50', 30);
-    veces(10, () => piedrita(p, '#cfae88', '#6b3d26'));
+  tierra: (p) => {   // Ahora es "Asfalto desgastado / Zona de escape"
+    p.fondo('#4a4d54');
+    veces(18, () => mancha(p, '#42454a', entero(p, 4, 7)));
+    veces(10, () => mancha(p, '#53565e', entero(p, 3, 5)));
+    veces(12, () => grieta(p, '#33353a', entero(p, 3, 6)));
+    p.motas('#33353a', 36); p.motas('#5e6169', 30);
+    veces(10, () => piedrita(p, '#7a7e87', '#2e3036'));
   },
   roca: (p) => {   // roca: lajas con un borde claro arriba y a la izquierda y uno oscuro abajo y a la derecha
     p.fondo('#9a958c');   // (clara: el camino de roca tiene que distinguirse del pedregal que lo rodea)
@@ -79,19 +79,19 @@ const PISOS = {
     p.motas('#66a546', 60, 1, 2); p.motas('#80ba52', 18);     // briznas claras
     p.motas('#ead451', 4); p.motas('#f1efe0', 3);             // florcitas
   },
-  barro: (p) => {   // barro
-    p.fondo('#6e3c24');
-    veces(22, () => mancha(p, '#5c311d', entero(p, 4, 8)));
-    veces(9, () => mancha(p, '#7c4629', entero(p, 3, 6)));
-    p.motas('#482518', 40);
-    p.motas('#96603e', 26, 2, 1); p.motas('#b98558', 8);      // brillo del barro mojado
+  barro: (p) => {   // Ahora es "Asfalto engomado / Marcas de neumáticos"
+    p.fondo('#2a2c30');
+    veces(22, () => mancha(p, '#222326', entero(p, 4, 8)));
+    veces(9, () => mancha(p, '#323438', entero(p, 3, 6)));
+    p.motas('#1a1b1d', 40);
+    p.motas('#3c3e44', 26, 2, 1); p.motas('#4a4d54', 8);      
   },
-  pantano: (p) => {   // pantano: barro aguado, claro, para que no se confunda con una sombra
-    p.fondo('#9a8560');
-    veces(12, () => mancha(p, '#a48f69', entero(p, 5, 9)));
-    veces(8, () => mancha(p, '#8a7652', entero(p, 4, 6)));
-    p.motas('#b9a57f', 26, 4, 1); p.motas('#cdbb96', 12, 2, 1);   // reflejos
-    p.motas('#6b5a3c', 26); p.motas('#7b8a4b', 10, 2, 1);         // hojas y lama
+  pantano: (p) => {   // Ahora es "Cemento mojado / pianos sucios"
+    p.fondo('#7c8288');
+    veces(12, () => mancha(p, '#888f96', entero(p, 5, 9)));
+    veces(8, () => mancha(p, '#6c7278', entero(p, 4, 6)));
+    p.motas('#979fa6', 26, 4, 1); p.motas('#a9b2b9', 12, 2, 1);   
+    p.motas('#5c6166', 26); p.motas('#4a4f54', 10, 2, 1);         
   },
   lecho: (p) => {   // lecho del rio: cantos rodados
     p.fondo('#84806c');
@@ -209,23 +209,23 @@ const PISOS = {
     p.motas('#4a4526', 50, 1, 2); p.motas('#857c46', 30, 1, 2); p.motas('#3f5a30', 16);
   },
   // la banquina: la franja pisada entre el camino y el pasto
-  banquinaBosque: (p) => {
-    p.fondo('#5d5136');
-    veces(16, () => mancha(p, '#524830', entero(p, 4, 8)));
-    veces(10, () => mancha(p, '#6a5c3e', entero(p, 3, 6)));
-    p.motas('#3f4a2c', 40, 1, 2); p.motas('#7d6c48', 24, 2, 1); veces(8, () => piedrita(p, '#9a8c6c', '#3e3626'));
+  banquinaBosque: (p) => { // Cemento oscuro
+    p.fondo('#55585c');
+    veces(16, () => mancha(p, '#4a4d52', entero(p, 4, 8)));
+    veces(10, () => mancha(p, '#606469', entero(p, 3, 6)));
+    p.motas('#383b3e', 40, 1, 2); p.motas('#6e7278', 24, 2, 1); veces(8, () => piedrita(p, '#858990', '#303336'));
   },
-  banquinaCampo: (p) => {
-    p.fondo('#6f7440');
-    veces(16, () => mancha(p, '#64693a', entero(p, 4, 8)));
-    veces(10, () => mancha(p, '#7d7e48', entero(p, 3, 6)));
-    p.motas('#4f5a30', 44, 1, 2); p.motas('#8f8a55', 22, 2, 1); veces(8, () => piedrita(p, '#a89f78', '#4a4a2c'));
+  banquinaCampo: (p) => { // Cemento claro / piano desgastado
+    p.fondo('#72767a');
+    veces(16, () => mancha(p, '#686b6f', entero(p, 4, 8)));
+    veces(10, () => mancha(p, '#7d8287', entero(p, 3, 6)));
+    p.motas('#4e5256', 44, 1, 2); p.motas('#8f949a', 22, 2, 1); veces(8, () => piedrita(p, '#a5abb0', '#42454a'));
   },
-  banquinaMontana: (p) => {
-    p.fondo('#6c644e');
-    veces(16, () => mancha(p, '#615945', entero(p, 4, 8)));
-    veces(10, () => mancha(p, '#787058', entero(p, 3, 6)));
-    p.motas('#4f4837', 40); veces(26, () => canto(p, ['#6e695e', '#868074', '#9e988b'], '#4a4435'));
+  banquinaMontana: (p) => { // Grava fina de escape
+    p.fondo('#616366');
+    veces(16, () => mancha(p, '#585a5e', entero(p, 4, 8)));
+    veces(10, () => mancha(p, '#6c6f73', entero(p, 3, 6)));
+    p.motas('#424447', 40); veces(26, () => canto(p, ['#616366', '#76797d', '#8b8e93'], '#3c3e41'));
   },
   // lo sembrado, en surcos
   trigo: (p) => {

@@ -48,11 +48,11 @@ export const AUTOS = {
     inercia: [700, 800, 200],
     ejes: 1.65, trocha: 0.75, radio: 0.33,
     anclaje: 0.02, centro: -0.1,          // centro de masa más atrás (motor trasero)
-    resorteLargo: 0.3, recorrido: 0.12, resorte: 52000, amortigua: [4000, 4000],
+    resorteLargo: 0.3, recorrido: 0.12, resorte: 52000, amortigua: [2000, 2000],
     // Downforce: empuje alto + mucho aire = más agarre a velocidad (como un F1 real)
-    empuje: 60, potencia: 600000, aire: 3.5,
+    empuje: 60, potencia: 600000, aire: 4,
     traccion: [0, 1],                      // tracción 100% trasera
-    frenoMotor: 0.22,
+    frenoMotor: 0.12,
     cubiertas: [3.5, 0.85],              // excelente en asfalto, pésimo en tierra
     giro: 0.22, lateral: 0.55, alturaLateral: 0.85,
     caja: [0.75, 2.2, -0.25, 0.55], choque: [0.72, 1.4],

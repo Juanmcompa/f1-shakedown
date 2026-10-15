@@ -1,6 +1,6 @@
 // pixel.js - Ported from Encajados
 // Tools for creating pixel-art textures and atlases for 3D models.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three.module.js';
 import { azar } from './noise.js';
 
 // --- la paleta ---

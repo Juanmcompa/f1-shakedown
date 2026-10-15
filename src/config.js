@@ -33,7 +33,7 @@ export const SUELO = Object.values(SUELOS);
 // - Mucho más rápido que un auto de rally: potencia alta, deriva baja (el asfalto agarra enseguida)
 const COMUN_F1 = {
   // Frenos de carbono F1: fuerza máxima enorme, balance muy adelante
-  frenos: 1.8, frenoAdelante: 0.78, reversa: 0.3, aceleraEn: 0.18, giroVel: 2.8, patinaje: 0.55,
+  frenos: 2.2, frenoAdelante: 0.78, reversa: 0.3, aceleraEn: 0.02, giroVel: 2, patinaje: 0.20,
   // Deriva baja: en asfalto un F1 casi no derrapa, agarra enseguida
   deriva: 0.07, firme: 0.7, colaFirme: 1.08, alinea: 0.45, giroFino: 0.18, estable: 0.55,
   chasis: [180000, 12000, 0.4],
@@ -44,17 +44,17 @@ export const AUTOS = {
   // Auto rápido: F1 actual, tracción trasera, mucho downforce, muy ágil
   vitarita: Object.assign({}, COMUN_F1, {
     nombre: 'F1 Moderno', detalle: 'tracción trasera, alto downforce', emoji: '🏎️', modelo: 'vitarita',
-    masa: 798,
-    inercia: [980, 980, 310],
+    masa: 1200,
+    inercia: [700, 800, 200],
     ejes: 1.65, trocha: 0.75, radio: 0.33,
     anclaje: 0.02, centro: -0.1,          // centro de masa más atrás (motor trasero)
-    resorteLargo: 0.3, recorrido: 0.12, resorte: 52000, amortigua: [4800, 6500],
+    resorteLargo: 0.3, recorrido: 0.12, resorte: 52000, amortigua: [4000, 4000],
     // Downforce: empuje alto + mucho aire = más agarre a velocidad (como un F1 real)
-    empuje: 1.1, potencia: 560000, aire: 8.5,
+    empuje: 60, potencia: 600000, aire: 3.5,
     traccion: [0, 1],                      // tracción 100% trasera
     frenoMotor: 0.22,
-    cubiertas: [1.18, 0.85],              // excelente en asfalto, pésimo en tierra
-    giro: 0.42, lateral: 0.55, alturaLateral: 0.85,
+    cubiertas: [3.5, 0.85],              // excelente en asfalto, pésimo en tierra
+    giro: 0.22, lateral: 0.55, alturaLateral: 0.85,
     caja: [0.75, 2.2, -0.25, 0.55], choque: [0.72, 1.4],
   }),
   // Auto más manejable: F1 de los años 80, menos downforce, más fácil de llevar

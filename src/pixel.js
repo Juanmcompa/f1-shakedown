@@ -4,11 +4,8 @@ import * as THREE from '../vendor/three.module.js';
 import { azar } from './noise.js';
 
 // --- la paleta: todo color que se pinta pasa por aca, asi el mundo entero tiene el mismo aire ---
-// Los colores se escriben "puros" en los dibujos y aca se apagan, se les baja el contraste y se les echa un velo de polvo.
-//   apagar: cuanta saturacion se saca (0 = nada, 1 = gris).   polvo / cuanto: el color del velo y cuanto tiñe.
-//   contraste: 1 = como esta escrito; menos = oscuros mas claros y claros mas oscuros.
-// Cada dibujo dice con que fuerza le pega (1 = el paisaje; menos = lo que tiene que resaltar, como los autos).
-export const PALETA = { apagar: 0.4, polvo: [216, 186, 158], cuanto: 0.15, contraste: 0.88 };
+// Para F1, subimos levemente el contraste de los colores vivos (fuerza de autos) y el asfalto.
+export const PALETA = { apagar: 0.28, polvo: [210, 205, 198], cuanto: 0.10, contraste: 0.94 };
 const ajustados = new Map();
 export function deLaPaleta(color, fuerza = 1) {
   if (!(fuerza > 0) || typeof color !== 'string' || color[0] !== '#' || color.length !== 7) return color;
@@ -60,6 +57,46 @@ export function lienzoPintado(w, h, pintar, semilla, fuerza = 1) {
   return lienzo;
 }
 export const textura = (w, h, pintar, semilla, fuerza) => comoTextura(lienzoPintado(w, h, pintar, semilla, fuerza));
+
+// --- Neumáticos de F1 (slicks con marcas de compuesto e.g. rojo Pirelli) y asfalto de autódromo ---
+// Añadimos patrones de pianos para el circuito, texturas de publicidad (red/white) y guardarraíles.
+export const TEXTURAS_COMPETENCIA = {
+  gomaF1Lateral: (p) => {
+    p.fondo('#141416');
+    // Neumático liso (slick) con la clásica banda circular roja de compuesto blando
+    p.rect(1, 1, 6, 6, '#1a1a1c');
+    p.rect(2, 2, 4, 4, '#dc1c2c'); // Línea roja (Pirelli Soft / F1 standard)
+    p.rect(3, 3, 2, 2, '#141416');
+    p.rect(3, 3, 2, 2, '#7e838c'); // Llanta metálica pequeña de perfil bajo
+    p.punto(3, 3, '#101011'); p.punto(4, 4, '#101011');
+  },
+  gomaF1Banda: (p) => {
+    p.fondo('#1a1a1c'); // Slick liso, sin dibujo, pero con marcas de desgaste por carrera
+    for (let i = 0; i < 24; i += 6) {
+      p.rect(i, 0, 1, 3, '#101011'); // Virutas de goma/desgaste
+      p.rect(i + 3, 2, 1, 1, '#252528');
+    }
+  },
+  pianoCurva: (p) => {
+    p.fondo('#f2f3f5'); // Rojo y blanco alternado para los bordillos de pista (pianos)
+    for (let i = 0; i < p.w; i += 8) {
+      p.rect(i, 0, 4, p.h, '#e31b23');
+    }
+  },
+  guardarrail: (p) => {
+    p.fondo('#abb1b8'); // Texturas de contención metálicas en las curvas
+    p.rect(0, 1, p.w, 1, '#dcdfe3');
+    p.rect(0, 3, p.w, 1, '#7e858f');
+    p.rect(0, p.h - 1, p.w, 1, '#535961');
+  },
+  publicidadF1: (p) => {
+    p.fondo('#e31b23'); // Cartelería publicitaria de pista (Fórmula 1 clásica roja/blanca)
+    for (let i = 0; i < p.w; i += 16) {
+      p.rect(i + 1, 1, 6, 2, '#ffffff'); // Bloques que simulan letras pixeladas
+      p.rect(i + 8, 2, 6, 1, '#ffffff');
+    }
+  }
+};
 
 export const glslPixel = (conParedes) => `
   vec3 dMx = dFdx(vMundo), dMy = dFdy(vMundo);

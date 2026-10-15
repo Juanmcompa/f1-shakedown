@@ -12,8 +12,8 @@ const RAD = Math.PI / 180;
 export const CIRCUITOS = [
   { id: 'subida', numero: 16001, version: 1, nombre: 'Subida a Mina Vieja', corto: 'Subida', emoji: '⛰️', bioma: 'montana', clima: 'sol', caracter: 'tecnica', lugar: '38°51′S 70°58′O',
     detalle: 'Angosta y empinada, con puentes y lajas. No hay velocidad: es pura técnica.', breve: 'Montaña angosta: pura técnica' },
-  { id: 'bajada', numero: 16002, version: 1, nombre: 'Bajada del Portezuelo', corto: 'Bajada', emoji: '🦅', bioma: 'montana', clima: 'tarde', caracter: 'rapida', lugar: '38°44′S 71°02′O',
-    detalle: 'Ancha, rápida y en bajada, toda de ripio suelto. Hay que llevarlo cruzado.', breve: 'Ripio en bajada: la más rápida' },
+  { id: 'bajada', numero: 16002, version: 2, nombre: 'Gran Premio Portezuelo', corto: 'Portezuelo', emoji: '🏎️', bioma: 'campo', clima: 'sol', caracter: 'rapida', lugar: '38°44′S 71°02′O', //[cite: 2]
+  detalle: 'Pista ancha y rápida de asfalto liso. Ideal para exprimir la aerodinámica.', breve: 'Asfalto rápido: la más veloz' }, //[cite: 2]
   { id: 'urbano', numero: 16003, version: 1, nombre: 'Callejero de Villa Cañada', corto: 'Urbano', emoji: '🏘️', bioma: 'campo', clima: 'sol', caracter: 'tecnica', lugar: '35°12′S 60°41′O',
     detalle: 'Entre las casas del pueblo: esquinas de 90 grados, la plaza, un pasaje angosto y cosas para esquivar.', breve: 'Esquinas de 90 entre las casas' },
   // vuelta: true = es una vuelta cerrada: no tiene llegada, se dan las vueltas que se quieran y queda la mejor.
@@ -107,7 +107,7 @@ function lajas(t, r, vacio) {
 }
 function subida() {
   const T = trazado(), r = azar(5101);
-  T.fijar({ ancho: 6.6, suelo: 'ripio', pendiente: 0 });
+  T.fijar({ ancho: 9.5, suelo: 'asfalto', pendiente: 0, lineas: 'ruta' }); //
   const largada = T.recta(64);
   largada.publico = [[20, -(largada.ancho / 2 + 7), 6], [27, largada.ancho / 2 + 7.5, 5]];
   // el camino se cierra y empieza a trepar por la quebrada
@@ -200,8 +200,8 @@ function bajada() {
   T.ladera('izq', 12, 24).fijar({ pendiente: -9 });
   T.recta(120);
   T.curva(200, -16);
-  T.recta(46, { nota: { tipo: 'salto' } });
-  T.ladera(null);
+  T.recta(84, { pendiente: -2 });
+  T.ladera(null); //
   T.recta(14, { pendiente: 5 }); T.recta(24, { pendiente: -11 });
   T.ladera('izq', 12, 24);
   T.recta(90);

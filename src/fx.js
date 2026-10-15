@@ -95,7 +95,7 @@ export function crearEfectos(escena, huellas, seco = 1, viento = [0.5, 0.3]) {
 
       // polvo: una nube cada tantos metros, mas seguido cuanto mas rapido va y cuanto mas resbala la rueda.
       // Lo levantan sobre todo las ruedas de atras; en el asfalto solo hay humo de goma si se va muy cruzado.
-      const levanta = mojado ? 0 : seco * (s.polvo * (0.4 + Math.min(1, vh / 16) * 0.6 + resbala * 1.3) + (s.blando === 0 ? Math.max(0, resbala - 0.45) * 1.6 : 0)) * (r.delantera ? 0.45 : 1);
+      const levanta = mojado ? 0 : seco * (s.polvo * (0.4 + Math.min(1, vh / 16) * 0.6 + resbala * 1.3) + (s.blando === 0 ? Math.max(0, resbala - 0.85) * 0.2 : 0)) * (r.delantera ? 0.45 : 1);
       if (w.toca && paso < 3 && levanta > 0.02 && vh > 2.5) {
         w.falta -= paso * levanta;
         if (w.falta <= 0) {

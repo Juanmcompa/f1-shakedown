@@ -22,9 +22,10 @@ const pintura = (base, mas) => Object.assign({
   luz: '#fff4c2', giro: '#ff9a2e', freno: '#e0322a', rally: true, carga: false, oxido: 0, velo: null, numero: '', franjas: ['#1fb5a6', '#e0409a'],
 }, mas);
 const PINTURAS = {
-  vitarita: pintura('#f0b41c', { numero: '92' }),                        // amarillo de rally, con las franjas noventosas
-  kacito: pintura('#8656c8', { numero: '97', franjas: ['#f2c200', '#f4f0e6'] }),   // violeta, con plasticos grises
-  chata: pintura('#e2a21e', { carga: true }),
+  vitarita: pintura('#f0b41c', { numero: '92' }),                        //
+  kacito: pintura('#8656c8', { numero: '97', franjas: ['#f2c200', '#f4f0e6'] }),   //
+  chata: pintura('#e2a21e', { carga: true }),                            //
+  f1: pintura('#e01818', { numero: '1', franjas: ['#ffffff', '#000000'] }), // Nuevo auto F1
 };
 const VELO = 'rgba(226, 240, 255, 0.62)';
 // autos del publico, estacionados: colores de calle, sin numeros ni faros de rally
@@ -347,7 +348,82 @@ const CHATA = {
     },
   },
 };
-const MODELOS = { vitarita: VITARITA, kacito: KACITO, chata: CHATA };
+
+// 2. Definición del F1 (debe ir siempre ANTES de referenciarlo)
+const F1 = {
+  W: 16, L: 44, Y0: -2, Y1: 7, rueda: 0.35, frenos: [[-1, -1, 21, 2, 2]], // Luz de lluvia central estilo F1
+  cajas: (q) => [
+    // Fondo plano y tabla de madera central (skid block)
+    [-6, -2, -10, 6, -1, 16, { liso: N[0] }],
+    // Nariz (inclinada hacia adelante)
+    [-2, -2, -22, 2, 0, -10, { cuña: 6 }],
+    // Alerón delantero (plano principal)
+    [-8, -2, -22, 8, -1, -19, { liso: q.c[2] }],
+    // Endplates del alerón delantero
+    [-8, -1, -22, -7, 1, -19, { liso: q.c[1] }], [7, -1, -22, 8, 1, -19, { liso: q.c[1] }],
+    // Chasis central / Cockpit
+    [-3, 0, -10, 3, 2, 2],
+    // Toma de aire (Airbox) detrás del piloto
+    [-2, 2, -2, 2, 6, 12, { cuña: 2, cuñaAtras: 5 }],
+    // Pontones (Sidepods) anchos que bajan hacia atrás
+    [-7, -1, -4, 7, 2, 10, { cuña: 1, cuñaAtras: 6 }],
+    // Cubierta del motor
+    [-3, 0, 2, 3, 2, 18, { cuñaAtras: 6 }],
+    // Alerón trasero (plano principal superior)
+    [-7, 5, 18, 7, 6, 21, { liso: q.c[2] }],
+    // Endplates del alerón trasero
+    [-7, 1, 17, -6, 7, 21, { liso: q.c[1] }], [6, 1, 17, 7, 7, 21, { liso: q.c[1] }]
+  ],
+  vistas: {
+    arriba: ({ A }, q, p) => {
+      const c = q.c;
+      p.fondo(N[1]);
+      A(-8, -22, 16, 3, c[2]);                 // Alerón delantero
+      A(-2, -22, 4, 12, c[3]);                 // Nariz
+      A(-7, -4, 14, 14, c[1]);                 // Pontones
+      A(-3, -10, 6, 12, c[2]);                 // Chasis
+      A(-2, -2, 4, 14, c[4]);                  // Airbox y cubierta del motor
+      A(-7, 18, 14, 3, c[2]);                  // Alerón trasero
+      cifras(q.numero, (x, y) => A(-3 + x, -6 + y, 1, 1, N[0])); // Número en la trompa
+    },
+    abajo: ({ B }, q, p) => {
+      p.fondo(N[0]);
+      B(-6, -10, 12, 26, N[1]);                // Fondo plano de carbono
+      B(-2, -10, 4, 25, '#5c4033');            // Skid block (madera) central
+    },
+    costado: ({ L }, q, p, espejo) => {
+      const c = q.c;
+      p.fondo(N[0]);
+      L(-22, -2, 12, 2, c[2]);                 // Perfil de la nariz
+      L(-4, -1, 14, 3, c[1]);                  // Pontones laterales
+      L(-2, 2, 14, 4, c[3]);                   // Airbox
+      L(17, 1, 4, 6, c[1]);                    // Endplate trasero
+      L(-3, 1, 3, 1, '#111');                  // Hueco del casco del piloto
+    },
+    frente: ({ F }, q, p) => {
+      const c = q.c;
+      p.fondo(N[0]);
+      F(-8, -2, 16, 1, c[2]);                  // Alerón delantero
+      F(-8, -1, 1, 2, c[1]); F(7, -1, 1, 2, c[1]); // Endplates delanteros
+      F(-2, -1, 4, 1, c[3]);                   // Morro
+      F(-7, -1, 14, 3, c[1]);                  // Pontones (tomas de aire laterales)
+      F(-6, 0, 2, 1, N[0]); F(4, 0, 2, 1, N[0]);   // Huecos de radiadores
+      F(-2, 2, 4, 4, c[4]);                    // Airbox superior
+      F(-1, 3, 2, 1, N[0]);                    // Hueco de admisión del airbox
+    },
+    atras: ({ T }, q, p) => {
+      const c = q.c;
+      p.fondo(N[0]);
+      T(-7, 5, 14, 1, c[2]);                   // Alerón trasero principal
+      T(-7, 1, 1, 6, c[1]); T(6, 1, 1, 6, c[1]);   // Endplates traseros
+      T(-1, -1, 2, 2, q.freno);                // Luz roja central inferior
+      T(-3, 0, 6, 2, c[3]);                    // Salida de escape
+      T(-1, 1, 2, 1, N[2]);                    // Caño de escape
+    },
+  },
+};
+
+const MODELOS = { vitarita: VITARITA, kacito: KACITO, chata: CHATA, f1: F1 }; //[cite: 1]
 
 // Pinta las vistas y arma la forma de un modelo con una pintura. Se guarda: dos autos iguales comparten todo.
 const hechos = new Map();
@@ -391,24 +467,20 @@ function modelo(id, q) {
   return hecho;
 }
 
-// --- ruedas: un prisma de diez lados con la llanta pintada ---
+// --- ruedas: un prisma de diez lados con la llanta pintada y compuesta F1 ---
+import { TEXTURAS_COMPETENCIA } from './pixel.js';
+
 const ruedas = new Map();
 let gomas = null;
 function piezasDeRueda(radio, ancho) {
   const clave = radio + 'x' + ancho;
   if (ruedas.has(clave)) return ruedas.get(clave);
   if (!gomas) {
-    const cara = textura(8, 8, (p) => {
-      p.fondo(GOMA);
-      p.rect(2, 1, 4, 6, '#26262b'); p.rect(1, 2, 6, 4, '#26262b');
-      p.rect(3, 2, 2, 4, METAL[0]); p.rect(2, 3, 4, 2, METAL[0]);
-      p.rect(3, 3, 1, 1, METAL[1]); p.rect(4, 4, 1, 1, METAL[1]); p.rect(4, 3, 1, 1, N[3]); p.rect(3, 4, 1, 1, N[3]);
-    });
-    const banda = textura(24, 3, (p) => {
-      p.fondo('#1a1a1d');
-      for (let i = 0; i < 24; i += 4) { p.rect(i, 0, 2, 1, '#34343a'); p.rect(i + 2, 1, 2, 1, '#34343a'); p.rect(i, 2, 2, 1, '#34343a'); }
-      p.motas('#5a3a26', 5);
-    });
+    // Usamos el diseño F1 de llanta de perfil bajo y marca de compuesto roja (Pirelli Soft)
+    const cara = textura(8, 8, TEXTURAS_COMPETENCIA.gomaF1Lateral);
+    // Usamos la banda slick lisa
+    const banda = textura(24, 3, TEXTURAS_COMPETENCIA.gomaF1Banda);
+    
     const mCara = new THREE.MeshLambertMaterial({ map: cara });
     gomas = [new THREE.MeshLambertMaterial({ map: banda }), mCara, mCara];
   }
@@ -419,7 +491,7 @@ function piezasDeRueda(radio, ancho) {
 
 // Arma un auto. C: sus medidas (de config.js; "modelo" dice cual es). q: la pintura (por defecto, la de rally de ese modelo).
 export function armarAuto(C, q) {
-  const id = MODELOS[C.modelo] ? C.modelo : 'vitarita';
+  const id = MODELOS[C.modelo] ? C.modelo : 'f1';
   const grupo = new THREE.Group(), { geo, mat, M } = modelo(id, q || PINTURAS[id]), r = piezasDeRueda(C.radio, M.rueda);
   const cuerpo = new THREE.Mesh(geo, mat);
   cuerpo.castShadow = true;
@@ -447,7 +519,11 @@ export function armarEstacionado(n) {
 
 const mFreno = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 0.22, 0.12) });   // tan fuerte que deja resplandor
 export function crearDibujo(escena, C) {
-  const { grupo, ruedas } = armarAuto(C), M = MODELOS[C.modelo] || VITARITA;
+  C.modelo = 'f1'; // <-- 1. Agrega esta línea para forzar que el jugador use el F1
+  
+  // 2. Cambia VITARITA por F1 en esta línea para que coincidan los frenos:
+  const { grupo, ruedas } = armarAuto(C), M = MODELOS[C.modelo] || F1; 
+  
   escena.add(grupo);
   // las luces de freno: dos chapitas rojas en la cola, que se prenden al frenar
   const frenos = new THREE.Group();
